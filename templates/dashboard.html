@@ -1,0 +1,264 @@
+{% extends "base.html" %}
+
+{% block title %}Teacher Analytics Dashboard — Student Performance Predictor{% endblock %}
+
+{% block content %}
+<div class="page-container dashboard-page">
+
+    <!-- Dashboard Header -->
+    <header class="dashboard-header">
+        <div class="header-content">
+            <span class="hero-pill">📊 Educator Analytics Portal</span>
+            <h1 class="hero-title">Teacher Dashboard & Cohort Overview</h1>
+            <p class="hero-desc">
+                Real-time cohort statistics calculated dynamically from actual student evaluation records,
+                paired with empirical machine learning diagnostics.
+            </p>
+        </div>
+        <div class="header-action">
+            <a href="{{ url_for('index') }}" class="btn-submit btn-sm">
+                <span>🌸</span> New Student Evaluation
+            </a>
+        </div>
+    </header>
+
+    <!-- Section 1: Dynamic Cohort Statistics (4 Summary Cards) -->
+    <section class="dashboard-stats-grid">
+        
+        <!-- Stat Card 1: Total Students -->
+        <div class="card stat-card stat-total">
+            <div class="stat-icon-wrapper icon-total">👥</div>
+            <div class="stat-info">
+                <span class="stat-card-label">Total Analyzed</span>
+                <span class="stat-card-value">{{ stats.total_students }}</span>
+                <span class="stat-card-sub">Simulated student profiles</span>
+            </div>
+        </div>
+
+        <!-- Stat Card 2: Average Predicted Score -->
+        <div class="card stat-card stat-avg">
+            <div class="stat-icon-wrapper icon-avg">🎯</div>
+            <div class="stat-info">
+                <span class="stat-card-label">Class Average Score</span>
+                <span class="stat-card-value">
+                    {% if stats.total_students > 0 %}{{ stats.avg_predicted_grade }}<span class="stat-unit">/ 20</span>{% else %}N/A{% endif %}
+                </span>
+                <span class="stat-card-sub">
+                    {% if stats.total_students > 0 %}{{ (stats.avg_predicted_grade / 20 * 100) | round(1) }}% equivalent{% else %}No data recorded{% endif %}
+                </span>
+            </div>
+        </div>
+
+        <!-- Stat Card 3: Pass Rate -->
+        <div class="card stat-card stat-pass">
+            <div class="stat-icon-wrapper icon-pass">✅</div>
+            <div class="stat-info">
+                <span class="stat-card-label">Class Pass Rate</span>
+                <span class="stat-card-value">
+                    {% if stats.total_students > 0 %}{{ stats.pass_rate }}%{% else %}N/A{% endif %}
+                </span>
+                <span class="stat-card-sub">Target &ge; 10/20 threshold</span>
+            </div>
+        </div>
+
+        <!-- Stat Card 4: At-Risk Count -->
+        <div class="card stat-card stat-risk">
+            <div class="stat-icon-wrapper icon-risk">⚠️</div>
+            <div class="stat-info">
+                <span class="stat-card-label">At-Risk Students</span>
+                <span class="stat-card-value">{{ stats.at_risk_count }}</span>
+                <span class="stat-card-sub">Requires active intervention</span>
+            </div>
+        </div>
+
+    </section>
+
+    <!-- Empty Database Banner if 0 records -->
+    {% if stats.total_students == 0 %}
+    <div class="card empty-data-card">
+        <div class="empty-icon">🌱</div>
+        <h3 class="empty-title">No Student Evaluations Recorded Yet</h3>
+        <p class="empty-desc">
+            The database is currently empty. Run student evaluations through the Predictor Form to automatically populate dynamic cohort metrics and history.
+        </p>
+        <a href="{{ url_for('index') }}" class="btn-preset btn-preset-high empty-btn">
+            🌸 Go to Predictor Form
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Section 2: Student Summary Table with Dynamic Filters -->
+    <section class="card table-card">
+        <div class="table-card-header">
+            <div>
+                <h2 class="card-title">Evaluated Student Records</h2>
+                <p class="card-subtitle">Detailed breakdown of predictions stored in SQLite.</p>
+            </div>
+
+            <!-- Working Tier Filter Buttons -->
+            <div class="filter-pills" id="tierFilterGroup">
+                <button type="button" class="filter-btn active" data-filter="all">
+                    All <span class="filter-count">({{ records | length }})</span>
+                </button>
+                <button type="button" class="filter-btn" data-filter="Distinction">
+                    🏆 Distinction <span class="filter-count">({{ stats.distinction_count }})</span>
+                </button>
+                <button type="button" class="filter-btn" data-filter="Merit">
+                    🌟 Merit <span class="filter-count">({{ stats.merit_count }})</span>
+                </button>
+                <button type="button" class="filter-btn" data-filter="Pass">
+                    ✅ Pass <span class="filter-count">({{ stats.pass_count }})</span>
+                </button>
+                <button type="button" class="filter-btn" data-filter="At-Risk">
+                    ⚠️ At-Risk <span class="filter-count">({{ stats.at_risk_count }})</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Table Structure -->
+        <div class="table-responsive">
+            <table class="dashboard-table" id="studentRecordsTable">
+                <thead>
+                    <tr>
+                        <th>Record #</th>
+                        <th>Predicted Score</th>
+                        <th>Performance Tier</th>
+                        <th>Grade Momentum</th>
+                        <th>Input Profile (Study / Failures / Absences)</th>
+                        <th>Evaluation Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if records %}
+                        {% for rec in records %}
+                        <tr class="table-row" data-tier="{{ rec.performance_tier }}">
+                            <td class="td-id">#{{ rec.id }}</td>
+                            <td class="td-score">
+                                <span class="score-badge">{{ rec.predicted_score }} <small>/ 20</small></span>
+                            </td>
+                            <td>
+                                <span class="tier-pill-sm tier-{{ rec.performance_tier | lower | replace(' ', '-') }}">
+                                    {{ rec.performance_tier }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="momentum-pill-sm momentum-{{ rec.grade_momentum | lower }}">
+                                    {% if rec.grade_momentum == 'Improving' %}📈
+                                    {% elif rec.grade_momentum == 'Declining' %}📉
+                                    {% else %}📊{% endif %}
+                                    {{ rec.grade_momentum }}
+                                </span>
+                            </td>
+                            <td class="td-inputs">
+                                <span class="input-tag">Study: L{{ rec.studytime }}</span>
+                                <span class="input-tag">Failures: {{ rec.failures }}</span>
+                                <span class="input-tag">Absences: {{ rec.absences }}d</span>
+                                <span class="input-tag">G1: {{ rec.g1 }}</span>
+                                <span class="input-tag">G2: {{ rec.g2 }}</span>
+                            </td>
+                            <td class="td-date">{{ rec.prediction_date }}</td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr id="emptyTableRow">
+                            <td colspan="6" class="td-empty">
+                                No records currently stored. Generate predictions to view student summary.
+                            </td>
+                        </tr>
+                    {% endif %}
+                    <tr id="noFilterMatchRow" style="display: none;">
+                        <td colspan="6" class="td-empty">
+                            No students match the selected tier filter.
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <!-- Section 3: Visual Analytics (Verified Diagnostic Charts) -->
+    <section class="visual-analytics-section">
+        <div class="section-header-centered">
+            <span class="hero-pill">📈 Empirical Data Science Diagnostics</span>
+            <h2 class="section-title">Cohort & Model Visual Analytics</h2>
+            <p class="section-subtitle">
+                Charts generated directly from the UCI Student Performance Dataset and our leak-free Linear Regression pipeline.
+            </p>
+        </div>
+
+        <div class="charts-gallery-grid">
+            
+            <!-- Chart 1: Final Grade Distribution -->
+            <div class="card chart-card">
+                <div class="chart-header">
+                    <span class="chart-badge">Cohort Distribution</span>
+                    <h3 class="chart-title">Final Grade Distribution (G3)</h3>
+                    <p class="chart-caption">Histogram showing the distribution of final scores across 395 students with the 10/20 pass cutoff.</p>
+                </div>
+                <div class="chart-image-wrapper">
+                    <img src="{{ url_for('static', filename='images/final_grade_distribution.png') }}" 
+                         alt="Final Grade Distribution" class="dashboard-chart-img" loading="lazy">
+                </div>
+            </div>
+
+            <!-- Chart 2: Correlation Heatmap -->
+            <div class="card chart-card">
+                <div class="chart-header">
+                    <span class="chart-badge">Feature Analysis</span>
+                    <h3 class="chart-title">Feature Correlation Heatmap</h3>
+                    <p class="chart-caption">Pearson correlation coefficients revealing strong links for G2 (+0.90) and G1 (+0.80) with final grade.</p>
+                </div>
+                <div class="chart-image-wrapper">
+                    <img src="{{ url_for('static', filename='images/correlation_heatmap.png') }}" 
+                         alt="Correlation Heatmap" class="dashboard-chart-img" loading="lazy">
+                </div>
+            </div>
+
+            <!-- Chart 3: Study Time vs Final Grade -->
+            <div class="card chart-card">
+                <div class="chart-header">
+                    <span class="chart-badge">Study Behavior</span>
+                    <h3 class="chart-title">Study Time vs. Exam Performance</h3>
+                    <p class="chart-caption">Boxplot illustrating progressive median grade increases across weekly study hour tiers.</p>
+                </div>
+                <div class="chart-image-wrapper">
+                    <img src="{{ url_for('static', filename='images/study_time_vs_g3.png') }}" 
+                         alt="Study Time vs G3" class="dashboard-chart-img" loading="lazy">
+                </div>
+            </div>
+
+            <!-- Chart 4: School Absences vs Final Grade -->
+            <div class="card chart-card">
+                <div class="chart-header">
+                    <span class="chart-badge">Attendance Impact</span>
+                    <h3 class="chart-title">School Absences vs. Final Grade</h3>
+                    <p class="chart-caption">Scatter plot with OLS trendline showing the general performance decline associated with absenteeism.</p>
+                </div>
+                <div class="chart-image-wrapper">
+                    <img src="{{ url_for('static', filename='images/absences_vs_g3.png') }}" 
+                         alt="Absences vs G3" class="dashboard-chart-img" loading="lazy">
+                </div>
+            </div>
+
+            <!-- Chart 5: Actual vs Predicted Model Diagnostics -->
+            <div class="card chart-card chart-card-wide">
+                <div class="chart-header">
+                    <span class="chart-badge badge-lavender">Model Diagnostic</span>
+                    <h3 class="chart-title">Actual vs. Predicted Evaluation ($R^2 = 78.2\%$, $\text{RMSE} = 2.11$)</h3>
+                    <p class="chart-caption">Unseen test cohort evaluation (N=79) and prediction residuals distribution around the zero-error threshold.</p>
+                </div>
+                <div class="chart-image-wrapper">
+                    <img src="{{ url_for('static', filename='images/actual_vs_predicted.png') }}" 
+                         alt="Actual vs Predicted" class="dashboard-chart-img" loading="lazy">
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/teacher_dashboard.js') }}"></script>
+{% endblock %}

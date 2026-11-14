@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Prediction Results & Advisory Plan — Student Performance Predictor{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+    <!-- Top Action Nav -->
+    <div class="result-top-bar">
+        <a href="{{ url_for('index') }}" class="btn-back">
+            &larr; Back to Predictor Form
+        </a>
+        <button class="btn-print" onclick="window.print()">
+            🖨️ Print / Save Plan
+        </button>
+    </div>
+
+    <!-- Main Results Hero Card -->
+    <div class="card result-hero-card">
+        <div class="result-hero-inner">
+            
+            <!-- Left Side: Big Score Display -->
+            <div class="score-showcase">
+                <span class="score-label">Predicted Final Exam Score (G3)</span>
+                <div class="score-circle">
+                    <span class="score-number">{{ result.predicted_score }}</span>
+                    <span class="score-denominator">/ 20</span>
+                </div>
+                <div class="percentage-pill">
+                    Equivalent to {{ (result.predicted_score / 20 * 100) | round(1) }}%
+                </div>
+            </div>
+
+            <!-- Right Side: Tier & Momentum Badges -->
+            <div class="status-summary">
+                
+                <!-- Performance Tier Badge -->
+                <div class="status-badge-block">
+                    <span class="status-tag-label">Performance Benchmark</span>
+                    <div class="tier-pill {{ result.tier_details.badge_class }}">
+                        <span class="tier-icon">
+                            {% if result.performance_tier == 'Distinction' %}🏆
+                            {% elif result.performance_tier == 'Merit' %}🌟
+                            {% elif result.performance_tier == 'Pass' %}✅
+                            {% else %}⚠️{% endif %}
+                        </span>
+                        <span class="tier-text">{{ result.performance_tier }}</span>
+                    </div>
+                    <p class="status-description">{{ result.tier_details.summary }}</p>
+                </div>
+
+                <!-- Grade Momentum Badge -->
+                <div class="status-badge-block">
+                    <span class="status-tag-label">Learning Trajectory (G1 &rarr; G2)</span>
+                    <div class="momentum-pill momentum-{{ result.grade_momentum | lower }}">
+                        <span class="momentum-icon">
+                            {% if result.grade_momentum == 'Improving' %}📈
+                            {% elif result.grade_momentum == 'Declining' %}📉
+                            {% else %}📊{% endif %}
+                        </span>
+                        <span class="momentum-text">{{ result.grade_momentum }}</span>
+                        <span class="momentum-delta">
+                            ({% if result.momentum_details.delta > 0 %}+{% endif %}{{ result.momentum_details.delta }} pts)
+                        </span>
+                    </div>
+                    <p class="status-description">{{ result.momentum_details.description }}</p>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- Student Input Context Pills -->
+        <div class="input-summary-bar">
+            <span class="summary-label">Evaluated Profile:</span>
+            <div class="summary-pills">
+                <span class="summary-pill">
+                    📖 Study Time: 
+                    {% if student.studytime == 1 %}&lt; 2 hrs/wk
+                    {% elif student.studytime == 2 %}2–5 hrs/wk
+                    {% elif student.studytime == 3 %}5–10 hrs/wk
+                    {% else %}&gt; 10 hrs/wk{% endif %}
+                </span>
+                <span class="summary-pill">📉 Past Failures: {{ student.failures }}</span>
+                <span class="summary-pill">🗓️ Absences: {{ student.absences }} days</span>
+                <span class="summary-pill">📝 Term 1 (G1): {{ student.G1 }} / 20</span>
+                <span class="summary-pill">🎯 Term 2 (G2): {{ student.G2 }} / 20</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recommendations Section -->
+    <section class="recommendations-container">
+        
+        <h2 class="section-heading">
+            <span class="heading-sparkle">🌸</span> Personalized Action & Advisory Plan
+        </h2>
+        <p class="section-subheading">Concrete, pedagogical steps designed to reinforce strengths and eliminate academic risk.</p>
+
+        <!-- 2-Column Grid: Study Time & Attendance Cards -->
+        <div class="recs-grid">
+            
+            <!-- Study Strategy Card -->
+            <div class="card rec-card">
+                <div class="rec-card-header header-study">
+                    <div class="rec-icon-box">📚</div>
+                    <div>
+                        <h3 class="rec-card-title">Weekly Study Strategy</h3>
+                        <p class="rec-card-subtitle">Realistic, sustainable study routine</p>
+                    </div>
+                </div>
+                <ul class="rec-list">
+                    {% for rec in result.study_recommendations %}
+                    <li class="rec-item">
+                        <span class="bullet-flower">🌸</span>
+                        <span class="rec-text">{{ rec }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            <!-- Attendance & Engagement Card -->
+            <div class="card rec-card">
+                <div class="rec-card-header header-attendance">
+                    <div class="rec-icon-box">🏫</div>
+                    <div>
+                        <h3 class="rec-card-title">Attendance & Engagement</h3>
+                        <p class="rec-card-subtitle">Classroom presence and lecture continuity</p>
+                    </div>
+                </div>
+                <ul class="rec-list">
+                    {% for rec in result.attendance_recommendations %}
+                    <li class="rec-item">
+                        <span class="bullet-flower">🌿</span>
+                        <span class="rec-text">{{ rec }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+        </div>
+
+        <!-- Overall Roadmap Card -->
+        <div class="card roadmap-card">
+            <div class="roadmap-header">
+                <div class="rec-icon-box roadmap-icon">🗺️</div>
+                <div>
+                    <h3 class="rec-card-title">Phase-by-Phase Improvement Roadmap</h3>
+                    <p class="rec-card-subtitle">Prioritized roadmap to maximize final examination marks</p>
+                </div>
+            </div>
+
+            <div class="roadmap-steps">
+                {% for step in result.overall_improvement_plan %}
+                <div class="step-card">
+                    <div class="step-number">{{ loop.index }}</div>
+                    <div class="step-body">
+                        <p class="step-text">{{ step }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </section>
+
+    <!-- Bottom Actions -->
+    <div class="result-bottom-actions">
+        <a href="{{ url_for('index') }}" class="btn-submit btn-secondary">
+            <span>✨</span> Simulate Another Student
+        </a>
+    </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,30 @@
+{
+    "model_name": "Multiple Linear Regression",
+    "target_variable": "G3",
+    "feature_columns": [
+        "studytime",
+        "failures",
+        "absences",
+        "G1",
+        "G2"
+    ],
+    "train_samples": 316,
+    "test_samples": 79,
+    "evaluation_metrics": {
+        "mae": 1.3394,
+        "mse": 4.4665,
+        "rmse": 2.1134,
+        "r2_score": 0.7822,
+        "r2_percentage": 78.22
+    },
+    "model_parameters": {
+        "intercept": 10.3259,
+        "coefficients": {
+            "studytime": -0.0595,
+            "failures": -0.3348,
+            "absences": 0.33,
+            "G1": 0.464,
+            "G2": 3.6735
+        }
+    }
+}

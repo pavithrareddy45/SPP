@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+
+{% block title %}Predict Student Performance — Academic Success Predictor{% endblock %}
+
+{% block content %}
+<div class="page-container">
+
+    <!-- Hero Header -->
+    <section class="hero-section">
+        <span class="hero-pill">✨ Academic Performance Simulator</span>
+        <h1 class="hero-title">Predict Final Exam Scores & Unlock Personalized Study Plans</h1>
+        <p class="hero-desc">
+            Enter academic attendance and historical exam grades to forecast final examination outcomes (0–20 scale)
+            and receive tailored, step-by-step improvement recommendations.
+        </p>
+
+        <!-- Quick Test Profiles -->
+        <div class="preset-container">
+            <span class="preset-label">Quick Test Presets:</span>
+            <div class="preset-buttons">
+                <button type="button" class="btn-preset btn-preset-high" onclick="fillPreset('high')">
+                    🌸 Try High Achiever
+                </button>
+                <button type="button" class="btn-preset btn-preset-risk" onclick="fillPreset('risk')">
+                    🍂 Try At-Risk Student
+                </button>
+                <button type="button" class="btn-preset btn-preset-reset" onclick="resetForm()">
+                    ↺ Reset
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- Error Alert Banner -->
+    {% if error %}
+    <div class="alert-box alert-error">
+        <span class="alert-icon">⚠️</span>
+        <div class="alert-content">
+            <strong>Input Error:</strong> {{ error }}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Main Grid: Form + Model Info Card -->
+    <div class="content-grid">
+
+        <!-- Form Card -->
+        <div class="card form-card">
+            <div class="card-header">
+                <h2 class="card-title">Student Academic Information</h2>
+                <p class="card-subtitle">Fill in the 5 model features below to generate prediction and feedback.</p>
+            </div>
+
+            <form action="{{ url_for('predict') }}" method="POST" id="predictionForm" class="prediction-form">
+                
+                <!-- Field 1: Weekly Study Time -->
+                <div class="form-group">
+                    <label for="studytime" class="form-label">
+                        <span class="field-icon">📖</span> Weekly Study Hours
+                    </label>
+                    <select name="studytime" id="studytime" class="form-control" required>
+                        <option value="" disabled {% if not form_data.get('studytime') %}selected{% endif %}>Select study time range...</option>
+                        <option value="1" {% if form_data.get('studytime') == '1' %}selected{% endif %}>Level 1: Less than 2 hours / week</option>
+                        <option value="2" {% if form_data.get('studytime') == '2' %}selected{% endif %}>Level 2: 2 to 5 hours / week</option>
+                        <option value="3" {% if form_data.get('studytime') == '3' %}selected{% endif %}>Level 3: 5 to 10 hours / week</option>
+                        <option value="4" {% if form_data.get('studytime') == '4' %}selected{% endif %}>Level 4: More than 10 hours / week</option>
+                    </select>
+                    <small class="form-hint">Hours dedicated to homework, revision, and independent study.</small>
+                </div>
+
+                <!-- 2-Column Row: Failures & Absences -->
+                <div class="form-row">
+                    <!-- Field 2: Past Failures -->
+                    <div class="form-group col-half">
+                        <label for="failures" class="form-label">
+                            <span class="field-icon">📉</span> Past Class Failures
+                        </label>
+                        <input type="number" name="failures" id="failures" class="form-control" 
+                               min="0" max="10" step="1" placeholder="e.g. 0" 
+                               value="{{ form_data.get('failures', '') }}" required>
+                        <small class="form-hint">Past course attempts (0 if none).</small>
+                    </div>
+
+                    <!-- Field 3: Absences -->
+                    <div class="form-group col-half">
+                        <label for="absences" class="form-label">
+                            <span class="field-icon">🗓️</span> Total School Absences
+                        </label>
+                        <input type="number" name="absences" id="absences" class="form-control" 
+                               min="0" max="100" step="1" placeholder="e.g. 4" 
+                               value="{{ form_data.get('absences', '') }}" required>
+                        <small class="form-hint">Days/sessions missed during the academic year.</small>
+                    </div>
+                </div>
+
+                <!-- 2-Column Row: G1 & G2 -->
+                <div class="form-row">
+                    <!-- Field 4: G1 (First Period Grade) -->
+                    <div class="form-group col-half">
+                        <label for="G1" class="form-label">
+                            <span class="field-icon">📝</span> First Period Grade (G1)
+                        </label>
+                        <div class="input-with-suffix">
+                            <input type="number" name="G1" id="G1" class="form-control" 
+                                   min="0" max="20" step="0.1" placeholder="0.0 to 20.0" 
+                                   value="{{ form_data.get('G1', '') }}" required>
+                            <span class="suffix-tag">/ 20</span>
+                        </div>
+                        <small class="form-hint">Term 1 assessments / assignment score.</small>
+                    </div>
+
+                    <!-- Field 5: G2 (Second Period Grade) -->
+                    <div class="form-group col-half">
+                        <label for="G2" class="form-label">
+                            <span class="field-icon">🎯</span> Second Period Grade (G2)
+                        </label>
+                        <div class="input-with-suffix">
+                            <input type="number" name="G2" id="G2" class="form-control" 
+                                   min="0" max="20" step="0.1" placeholder="0.0 to 20.0" 
+                                   value="{{ form_data.get('G2', '') }}" required>
+                            <span class="suffix-tag">/ 20</span>
+                        </div>
+                        <small class="form-hint">Midterm / Term 2 examination grade.</small>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="form-actions">
+                    <button type="submit" class="btn-submit">
+                        <span class="btn-icon">✨</span> Predict Final Grade & Get Advisory Plan
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Sidebar / Transparency Cards -->
+        <aside class="sidebar-cards" id="about-model">
+            <!-- Model Performance Card -->
+            <div class="card side-card model-stat-card">
+                <div class="side-card-header">
+                    <span class="card-badge">Scikit-Learn ML</span>
+                    <h3 class="side-title">Model Reliability</h3>
+                </div>
+                <p class="side-text">Trained using verified Multiple Linear Regression on the UCI Student Performance Dataset ($N=395$).</p>
+                
+                <div class="stat-pills-grid">
+                    <div class="stat-pill">
+                        <span class="stat-value">78.22%</span>
+                        <span class="stat-lbl">R² Explained Variance</span>
+                    </div>
+                    <div class="stat-pill">
+                        <span class="stat-value">&plusmn;1.34</span>
+                        <span class="stat-lbl">Mean Absolute Error (MAE)</span>
+                    </div>
+                    <div class="stat-pill">
+                        <span class="stat-value">2.11</span>
+                        <span class="stat-lbl">RMSE (out of 20)</span>
+                    </div>
+                    <div class="stat-pill">
+                        <span class="stat-value">80 / 20</span>
+                        <span class="stat-lbl">Train / Test Split</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ethical AI Card -->
+            <div class="card side-card ethical-card">
+                <div class="side-card-header">
+                    <span class="card-badge badge-lavender">Fairness Guard</span>
+                    <h3 class="side-title">Ethical AI Protection</h3>
+                </div>
+                <p class="side-text">
+                    This model <strong>does not use</strong> sensitive demographic variables (gender, age, address, family status, or socio-economic indicators) to predict scores. 
+                </p>
+                <div class="ethical-check-list">
+                    <div class="check-item">✓ Zero demographic bias</div>
+                    <div class="check-item">✓ Academic & behavioral signals only</div>
+                    <div class="check-item">✓ Strictly leak-free preprocessing</div>
+                </div>
+            </div>
+
+            <!-- Grading Scale Card -->
+            <div class="card side-card grading-card">
+                <h3 class="side-title">Grading Benchmarks (0–20)</h3>
+                <ul class="grading-list">
+                    <li><span class="dot dot-green"></span> <strong>16 – 20:</strong> Distinction (Top Honors)</li>
+                    <li><span class="dot dot-blue"></span> <strong>14 – 15.9:</strong> Merit (Strong Above Average)</li>
+                    <li><span class="dot dot-amber"></span> <strong>10 – 13.9:</strong> Pass (Satisfactory)</li>
+                    <li><span class="dot dot-red"></span> <strong>0 – 9.9:</strong> At-Risk (Needs Remediation)</li>
+                </ul>
+            </div>
+        </aside>
+
+    </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Quick test preset filler
+    function fillPreset(type) {
+        const studytimeSelect = document.getElementById("studytime");
+        const failuresInput = document.getElementById("failures");
+        const absencesInput = document.getElementById("absences");
+        const g1Input = document.getElementById("G1");
+        const g2Input = document.getElementById("G2");
+
+        if (type === 'high') {
+            // High-achiever profile: studytime=3 (5-10h), failures=0, absences=2, G1=17.0, G2=18.0
+            studytimeSelect.value = "3";
+            failuresInput.value = "0";
+            absencesInput.value = "2";
+            g1Input.value = "17.0";
+            g2Input.value = "18.0";
+            flashInputs();
+        } else if (type === 'risk') {
+            // At-risk student profile: studytime=1 (<2h), failures=2, absences=12, G1=6.0, G2=6.0
+            studytimeSelect.value = "1";
+            failuresInput.value = "2";
+            absencesInput.value = "12";
+            g1Input.value = "6.0";
+            g2Input.value = "6.0";
+            flashInputs();
+        }
+    }
+
+    function resetForm() {
+        document.getElementById("predictionForm").reset();
+    }
+
+    function flashInputs() {
+        const inputs = [
+            document.getElementById("studytime"),
+            document.getElementById("failures"),
+            document.getElementById("absences"),
+            document.getElementById("G1"),
+            document.getElementById("G2")
+        ];
+        inputs.forEach(el => {
+            el.classList.add("input-highlight");
+            setTimeout(() => el.classList.remove("input-highlight"), 600);
+        });
+    }
+</script>
+{% endblock %}
